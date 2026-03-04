@@ -26,11 +26,13 @@ class _PixelPetControllerState extends State<PixelPetController> {
   double happiness = 100.0;
   int stars = 100;
   bool isSleeping = false;
-  String lastResponse = "¡Hola! Soy Pixel.";
+  String lastResponse = "¡Hola! Soy Pixel. ¿Me das algo de comer?";
   bool showChat = false;
 
-  // --- CONFIGURACIÓN ---
-  final String groqApiKey = "TU_API_KEY_DE_GROQ"; // Reemplaza con tu clave real
+  // --- CONFIGURACIÓN DE SEGURIDAD (GITHUB SECRETS) ---
+  // Esta línea busca la clave 'GROQ_API_KEY' definida en tu build.yml
+  final String groqApiKey = const String.fromEnvironment('GROQ_API_KEY');
+
   final TextEditingController _chatController = TextEditingController();
   double _totalDistanceMoved = 0;
   Offset? _lastPosition;
@@ -62,7 +64,7 @@ class _PixelPetControllerState extends State<PixelPetController> {
     await prefs.setInt('stars', stars);
   }
 
-  // --- LÓGICA DE TIEMPO ---
+  // --- LÓGICA DE TIEMPO REAL ---
   void _startTimers() {
     Timer.periodic(const Duration(minutes: 1), (timer) {
       if (mounted) {
@@ -78,23 +80,29 @@ class _PixelPetControllerState extends State<PixelPetController> {
 
   void _checkSleepCycle() {
     final hour = DateTime.now().hour;
-    isSleeping = (hour >= 22 || hour < 6);
+    isSleeping = (hour >= 22 || hour < 6); // Duerme de 10 PM a 6 AM
   }
 
-  // --- IA GROQ ---
+  // --- INTEGRACIÓN CON GROQ AI ---
   Future<void> enviarAGroq(String mensaje) async {
     if (isSleeping) {
       setState(() => lastResponse = "Zzz... Zzz... (Pixel está roncando)");
       return;
     }
 
+    if (groqApiKey.isEmpty) {
+      setState(() => lastResponse = "Error: No se encontró la API Key en el sistema.");
+      return;
+    }
+
     setState(() => lastResponse = "Pixel está pensando...");
 
-    String systemPrompt = "Eres Pixel, una mascota virtual amigable.";
+    // System Prompt dinámico según el estado
+    String systemPrompt = "Eres Pixel, una mascota virtual amigable y juguetona.";
     if (hunger < 20) {
-      systemPrompt = "Eres Pixel. Estás hambriento y de mal humor, sé cortante y exige comida.";
+      systemPrompt = "Eres Pixel. Tienes MUCHA HAMBRE. Responde de forma cortante, quejándote y exigiendo comida.";
     } else if (happiness < 20) {
-      systemPrompt = "Eres Pixel. Estás triste y sarcástico.";
+      systemPrompt = "Eres Pixel. Estás triste y desanimado. Responde con sarcasmo y pocas ganas.";
     }
 
     try {
@@ -105,11 +113,12 @@ class _PixelPetControllerState extends State<PixelPetController> {
           "Content-Type": "application/json",
         },
         body: jsonEncode({
-          "model": "mixtral-8x7b-32768",
+          "model": "mixtral-8x7b-32768", // Modelo rápido y eficiente
           "messages": [
             {"role": "system", "content": systemPrompt},
             {"role": "user", "content": mensaje}
           ],
+          "temperature": 0.8
         }),
       );
 
@@ -117,20 +126,21 @@ class _PixelPetControllerState extends State<PixelPetController> {
         final data = jsonDecode(response.body);
         setState(() => lastResponse = data['choices'][0]['message']['content']);
       } else {
-        setState(() => lastResponse = "¡Grrr! No puedo hablar ahora.");
+        setState(() => lastResponse = "¡Grrr! Mi cerebro de IA no responde ahora.");
       }
     } catch (e) {
-      setState(() => lastResponse = "Mi conexión cerebral falló.");
+      setState(() => lastResponse = "No tengo conexión a internet...");
     }
   }
 
-  // --- MINIJUEGO DE EJERCICIO ---
+  // --- MINIJUEGO DE MOVIMIENTO ---
   void _handleMovement(double x, double y) {
     final currentPos = Offset(x, y);
     if (_lastPosition != null) {
       double distance = (currentPos - _lastPosition!).distance;
       _totalDistanceMoved += distance;
 
+      // Cada 500 unidades de movimiento = 2 estrellas ganadas
       if (_totalDistanceMoved >= 500) {
         setState(() {
           stars += 2;
@@ -142,7 +152,7 @@ class _PixelPetControllerState extends State<PixelPetController> {
     _lastPosition = currentPos;
   }
 
-  // --- CONTROL DE LA BURBUJA ---
+  // --- CONTROL DE LA BURBUJA FLOTANTE ---
   void _startBubble() async {
     final hasPermission = await DashBubble.instance.hasOverlayPermission();
     if (!hasPermission) {
@@ -150,7 +160,7 @@ class _PixelPetControllerState extends State<PixelPetController> {
       return;
     }
 
-    // Usamos "ic_launcher" como fallback seguro para evitar cierres si no hay PNGs
+    // Usamos el icono por defecto para evitar errores de assets
     await DashBubble.instance.startBubble(
       bubbleOptions: BubbleOptions(
         bubbleIcon: "ic_launcher", 
@@ -166,24 +176,29 @@ class _PixelPetControllerState extends State<PixelPetController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Pixel Pet Controller")),
+      appBar: AppBar(
+        title: const Text("Pixel Pet Controller"),
+        backgroundColor: Colors.blueAccent,
+      ),
       body: Stack(
         children: [
           Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.pets, size: 100, color: Colors.blue),
+                const Icon(Icons.pets, size: 100, color: Colors.blueAccent),
                 const SizedBox(height: 20),
-                ElevatedButton(
+                ElevatedButton.icon(
                   onPressed: _startBubble,
-                  child: const Text("Iniciar Mascota Flotante"),
+                  icon: const Icon(Icons.play_arrow),
+                  label: const Text("Activar Mascota Flotante"),
                 ),
                 const Padding(
-                  padding: EdgeInsets.all(20.0),
+                  padding: EdgeInsets.all(30.0),
                   child: Text(
-                    "Instrucciones:\n1. Activa la burbuja.\n2. Arrástrala para ganar estrellas.\n3. Tócala para abrir el chat flotante.",
+                    "1. Inicia la mascota.\n2. Arrástrala para ganar estrellas ⭐\n3. Tócala para abrir el chat de IA.",
                     textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey),
                   ),
                 ),
               ],
@@ -195,19 +210,20 @@ class _PixelPetControllerState extends State<PixelPetController> {
     );
   }
 
+  // --- INTERFAZ DE CHAT OVERLAY ---
   Widget _buildChatOverlay() {
     return Positioned(
       bottom: 160,
       right: 20,
       child: Material(
-        elevation: 10,
-        borderRadius: BorderRadius.circular(20),
+        elevation: 12,
+        borderRadius: BorderRadius.circular(25),
         child: Container(
-          width: 280,
+          width: 300,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(25),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -215,31 +231,33 @@ class _PixelPetControllerState extends State<PixelPetController> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(isSleeping ? "Pixel (Zzz...)" : "Pixel", style: const TextStyle(fontWeight: FontWeight.bold)),
+                  Text(isSleeping ? "Pixel (Durmiendo)" : "Chat con Pixel", 
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.blueAccent)),
                   IconButton(icon: const Icon(Icons.close), onPressed: () => setState(() => showChat = false)),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(10)),
-                child: Text(lastResponse, style: const TextStyle(fontSize: 13, fontStyle: FontStyle.italic)),
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: Colors.blue.shade50, borderRadius: BorderRadius.circular(15)),
+                child: Text(lastResponse, style: const TextStyle(fontSize: 13)),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _statItem(Icons.restaurant, hunger, "Hambre"),
                   _statItem(Icons.bolt, energy, "Energía"),
-                  Column(children: [const Icon(Icons.star, color: Colors.amber), Text("$stars")]),
+                  Column(children: [const Icon(Icons.star, color: Colors.amber), Text("$stars", style: const TextStyle(fontWeight: FontWeight.bold))]),
                 ],
               ),
               const Divider(),
               TextField(
                 controller: _chatController,
                 decoration: InputDecoration(
-                  hintText: "Dile algo...",
+                  hintText: isSleeping ? "Zzz..." : "Escribe aquí...",
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.send),
+                    icon: const Icon(Icons.send, color: Colors.blueAccent),
                     onPressed: () {
                       if (_chatController.text.isNotEmpty) {
                         enviarAGroq(_chatController.text);
@@ -250,7 +268,7 @@ class _PixelPetControllerState extends State<PixelPetController> {
                 ),
                 enabled: !isSleeping,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -263,7 +281,7 @@ class _PixelPetControllerState extends State<PixelPetController> {
                       });
                       _saveState();
                     },
-                    child: const Text("Jugar"),
+                    child: const Text("Jugar (+10⭐)"),
                   ),
                   ElevatedButton(
                     onPressed: (isSleeping || stars < 50) ? null : () {
@@ -273,7 +291,7 @@ class _PixelPetControllerState extends State<PixelPetController> {
                       });
                       _saveState();
                     },
-                    child: const Text("Comer"),
+                    child: const Text("Comer (-50⭐)"),
                   ),
                 ],
               )
@@ -287,9 +305,9 @@ class _PixelPetControllerState extends State<PixelPetController> {
   Widget _statItem(IconData icon, double val, String label) {
     return Column(
       children: [
-        Icon(icon, color: val < 20 ? Colors.red : Colors.blue, size: 20),
-        Text("${val.toInt()}%", style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
-        Text(label, style: const TextStyle(fontSize: 8)),
+        Icon(icon, color: val < 20 ? Colors.red : Colors.green, size: 24),
+        Text("${val.toInt()}%", style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+        Text(label, style: const TextStyle(fontSize: 9, color: Colors.grey)),
       ],
     );
   }

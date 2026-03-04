@@ -1,25 +1,19 @@
-name: pixel_pet_overlay
-description: Mascota virtual con IA y sistema de overlay.
-version: 1.0.0+1
+name: Build APK
+on: [push]
 
-environment:
-  sdk: ">=3.0.0 <4.0.0"
-
-dependencies:
-  flutter:
-    sdk: flutter
-  dash_bubble: ^1.0.1
-  http: ^1.1.0
-  shared_preferences: ^2.2.2
-
-dev_dependencies:
-  flutter_test:
-    sdk: flutter
-  flutter_lints: ^3.0.0
-
-flutter:
-  uses-material-design: true
-  # Asegúrate de crear estas carpetas y poner tus imágenes si quieres usarlas después
-  assets:
-    - assets/icons/pet_icon.png
-    - assets/icons/sleep_icon.png
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      # Aquí inyectamos tu Secret de la imagen 1 en el APK
+      - run: flutter build apk --debug --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: PixelPet-Installer
+          path: build/app/outputs/flutter-apk/app-debug.apk

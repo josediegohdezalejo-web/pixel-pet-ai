@@ -1,0 +1,21 @@
+name: Build APK
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+      - run: flutter pub get
+      # Aquí es donde se crea el instalador usando tu clave secreta
+      - run: flutter build apk --debug --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
+      
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: PixelPet-Installer # ESTE ES EL NOMBRE QUE BUSCAS
+          path: build/app/outputs/flutter-apk/app-debug.apk
+          

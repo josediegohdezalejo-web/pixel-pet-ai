@@ -3,12 +3,14 @@ description: Mi mascota virtual con IA
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.2.0 <4.0.0' # Esta es la línea que falta según tu error
+  sdk: '>=3.2.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
-  dash_bubble: ^1.0.1
+  
+  # He actualizado dash_bubble a la versión 2.0.0 como sugiere el error de tu imagen
+  dash_bubble: ^2.0.0 
   http: ^1.1.0
   shared_preferences: ^2.2.2
 
@@ -19,7 +21,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
-  # Si ya subiste tus imágenes, asegúrate de que esta sección esté así:
   assets:
     - assets/images/pixel_normal.gif
     - assets/images/pixel_hambriento.gif

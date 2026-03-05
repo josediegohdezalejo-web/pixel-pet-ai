@@ -1,19 +1,28 @@
-name: Build APK
-on: [push]
+name: pixel_pet_ai
+description: Mi mascota virtual con IA
+version: 1.0.0+1
 
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-      - uses: subosito/flutter-action@v2
-        with:
-          channel: 'stable'
-      - run: flutter pub get
-      # Aquí inyectamos tu Secret de la imagen 1 en el APK
-      - run: flutter build apk --debug --dart-define=GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}
-      - name: Upload APK
-        uses: actions/upload-artifact@v3
-        with:
-          name: PixelPet-Installer
-          path: build/app/outputs/flutter-apk/app-debug.apk
+environment:
+  sdk: '>=3.2.0 <4.0.0' # Esta es la línea que falta según tu error
+
+dependencies:
+  flutter:
+    sdk: flutter
+  dash_bubble: ^1.0.1
+  http: ^1.1.0
+  shared_preferences: ^2.2.2
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
+  # Si ya subiste tus imágenes, asegúrate de que esta sección esté así:
+  assets:
+    - assets/images/pixel_normal.gif
+    - assets/images/pixel_hambriento.gif
+    - assets/images/pixel_triste.gif
+    - assets/images/pixel_durmiendo.gif
+    
